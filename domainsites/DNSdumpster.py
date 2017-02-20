@@ -66,8 +66,8 @@ class DNSdumpster():
         return self.get_response(resp)
 
     def get_response(self,response):
-    	if response is None:
-    		return 0
+        if response is None:
+            return None
         if hasattr(response, "text"):
             return response.text
         else:
