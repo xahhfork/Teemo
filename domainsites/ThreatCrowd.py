@@ -1,4 +1,6 @@
+#coding:utf-8
 __author__ = 'bit4'
+
 import multiprocessing
 import threading
 import urlparse
@@ -82,5 +84,10 @@ class ThreatCrowd(multiprocessing.Process):
 
 
 if __name__ == "__main__":
-    x = ThreatCrowd("meizu.com","https://127.0.0.1:9999")
+    proxy = {
+    "http": "http://127.0.0.1:9999/",
+    "https": "http://127.0.0.1:9999/",
+    }
+    #x = ThreatCrowd("meizu.com","https://127.0.0.1:9999")
+    x = ThreatCrowd("meizu.com",proxy)  #2种传递proxy的方法在这都是可以的，但是第一种更适合大多场景，比如 requests.get中，第二种就不适用
     print x.run()

@@ -28,7 +28,7 @@ class DNSdumpster():
         return self.q
 
     def print_banner(self):
-        print "[-] Searching now in %s.." %(self.engine_name)
+        print "[-] Searching now in %s" %(self.engine_name)
         return
 
     def check_host(self,host):
@@ -87,7 +87,7 @@ class DNSdumpster():
         params = {'csrfmiddlewaretoken':token, 'targetip':self.domain}
         post_resp = self.req('POST', self.base_url, params)
         if "Too many requests from your IP address, temporary limit enforced. Try again tomorrow." in post_resp:
-            print "DNSdumpster has blocked our request"
+            print "[!] Error: DNSdumpster has blocked our request"
         self.extract_domains(post_resp)
         for subdomain in self.subdomains:
             t = threading.Thread(target=self.check_host,args=(subdomain,))

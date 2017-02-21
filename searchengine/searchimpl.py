@@ -1,6 +1,10 @@
 __author__ = 'bit4'
+#coding:utf-8
 from search import search
 import re
+import multiprocessing
+import threading
+
 
 class baidu_search(search):
     def __init__(self, key_word=None, limit=1000, proxy=None):
@@ -85,8 +89,7 @@ class google_search(search):
         
     def check_response_errors(self, resp):
         if 'Our systems have detected unusual traffic' in resp:
-            print "[!] Error: Google probably now is blocking our requests"
-            print "[~] Finished the Google Enumeration ..."
+            print "[!] Error: Google probably now is blocking our request"
             return True
         return False # baidu will not block our requset
 
@@ -140,9 +143,32 @@ def callengines(key_word,limit=1000,proxy=None):
         final_emails.extend(email)
     return list(set(final_domains)),list(set(final_emails))
 
-if __name__ == "__main__":
+def callengines_thread(engine,key_word,limit=1000,proxy=None):
+    final_domains = []
+    final_emails = []
+    x = engine(key_word, limit, proxy)
+    domain, email = x.run()
+    print domain,email
+    final_domains.extend(domain)
+    final_emails.extend(email)
 
-    print callengines("meizu.com",100,"http://127.0.0.1:9999")
+if __name__ == "__main__":
+    proxy = {
+    "http": "http://127.0.0.1:9999/",
+    "https": "http://127.0.0.1:9999/",
+    }
+    Threadlist = []
+    for engine in [baidu_search, ask_search, bing_search, dogpile_search, exalead_search, google_search, yandex_search, yahoo_search]:
+        t = threading.Thread(target=callengines_thread,args=(engine,"meizu.com",100,proxy))
+        Threadlist.append(t)
+    for t in Threadlist:
+        print t
+    for t in Threadlist: #use start() ,not run()
+        t.start()
+    for p in Threadlist:
+        t.join()
+
+
 
 
 

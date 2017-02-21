@@ -4,16 +4,29 @@ __author__ = 'bit4'
 
 import os
 import argparse
-import urlparse
+import queue
 import socket
 from lib.common import *
 from subbrute import subbrute
 import threading
-import multiprocessing
-from domainsites.callsites import callsites
-from searchengine.searchimpl import callengines
-
+#from domainsites.callsites import *
+from searchengine.searchimpl import baidu_search, ask_search, bing_search, dogpile_search, exalead_search, google_search, yandex_search, yahoo_search
 from config import GoogleCSE_API_Key,proxies
+
+from domainsites.Alexa import Alexa
+from domainsites.Chaxunla import Chaxunla
+from domainsites.CrtSearch import CrtSearch
+from domainsites.DNSdumpster import DNSdumpster
+from domainsites.Googlect import Googlect
+from domainsites.Ilink import Ilink
+from domainsites.Netcraft import Netcraft
+from domainsites.PassiveDNS import PassiveDNS
+from domainsites.Pgpsearch import Pgpsearch
+from domainsites.Sitedossier import Sitedossier
+from domainsites.ThreatCrowd import ThreatCrowd
+from domainsites.Threatminer import Threatminer
+
+
 
 #In case you cannot install some of the required development packages, there's also an option to disable the SSL warning:
 try:
@@ -108,6 +121,27 @@ class portscan():
             t = threading.Thread(target=self.port_scan,args=(subdomain,self.ports))
             t.start()
 
+
+def callengines_thread(engine, key_word, q_domains, q_emails, proxy=None,limit=1000):
+    x = engine(key_word, limit, proxy)
+    domains,emails = x.run()
+    if domains: # domains maybe None
+        for domain in domains:
+            q_domains.put(domain)
+    if emails:
+        for email in emails:
+            q_emails.put(email)
+
+def callsites_thread(engine, key_word, q_domains, q_emails, proxy=None):
+    enum = engine(key_word,proxy)
+    domains = enum.run()
+    if domains:
+        for domain in domains:
+            q_domains.put(domain)
+        #return list(set(final_domains))
+
+
+
 def main():
     args = parse_args()
     domain = args.domain
@@ -144,10 +178,36 @@ def main():
     banner()
     print B+"[-] Enumerating subdomains now for %s"% domain+W
 
+    '''
     subdomains.extend(callsites(domain,proxy))
     domains,emails = callengines(domain,500,proxy)
     subdomains.extend(domains)
     #print subdomains
+    '''
+
+    Threadlist = []
+    q_domains = queue.Queue() #to recevie return values
+    q_emails = queue.Queue()
+    for engine in [Alexa,Chaxunla,CrtSearch,DNSdumpster,Googlect,Ilink,Netcraft,PassiveDNS,Pgpsearch,Sitedossier,ThreatCrowd,Threatminer]:
+        #print callsites_thread(engine,domain,proxy)
+        t = threading.Thread(target=callsites_thread,args=(engine, domain, q_domains, q_emails, proxy))
+        Threadlist.append(t)
+    for engine in [baidu_search, ask_search, bing_search, dogpile_search, exalead_search, google_search, yandex_search, yahoo_search]:
+        t = threading.Thread(target=callengines_thread,args=(engine, domain, q_domains, q_emails, proxy, 500))
+        Threadlist.append(t)
+    #for t in Threadlist:
+    #    print t
+    for t in Threadlist: # use start() not run()
+        t.start()
+    for t in Threadlist:
+        t.join()
+
+    while not q_domains.empty():
+        subdomains.append(q_domains.get())
+    emails = []
+    while not q_emails.empty():
+        emails.append(q_emails.get())
+
 
     if enable_bruteforce:
         print G+"[-] Starting bruteforce module now using subDomainsBrute.."+W
@@ -169,8 +229,8 @@ def main():
     print "[+] {0} emails found in total".format(len(emails))
 
     if subdomains is not None:
-        subdomains = sorted(subdomains)
-        emails = sorted(emails)
+        subdomains = sorted(list(set(subdomains)))
+        emails = sorted(list(set(emails)))
         subdomains.extend(emails) #this function return value is NoneType ,can't use in function directly
         #print type(subdomains)
         if savefile:

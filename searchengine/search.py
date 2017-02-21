@@ -13,7 +13,7 @@ class search(object):
         self.counter_step = 10 #10 or 50
         self.limit = int(limit) #100*
 
-        self.session = requests.Session()
+        #self.session = requests.Session()
         self.timeout = 5
         self.base_url = base_url #"http://www.baidu.com/s?wd=%40{query}&pn={page_no}"
         self.engine_name = engine_name
@@ -28,11 +28,12 @@ class search(object):
                    'Connection': 'keep-alive'
                    }
         url =  self.base_url.format(query=self.key_word, page_no=self.counter)
+        #resp = requests.get(url, headers=headers, timeout=self.timeout, proxies=self.proxy)
         try:
-            resp = self.session.get(url, headers=headers, timeout=self.timeout, proxies=self.proxy)
+            resp = requests.get(url, headers=headers, timeout=self.timeout, proxies=self.proxy)
         except Exception as e:
             print e
-            return '0'
+            return None
             pass
         if hasattr(resp, "text"):
             return resp.text
@@ -49,10 +50,10 @@ class search(object):
         return True
 
     def process(self):
-        print "Searching now in %s" % self.engine_name
+        print "[-] Searching now in %s" % self.engine_name
         while self.counter <= self.limit and self.counter <= 1000:
             self.result = self.do_search()
-            if self.check_response_errors(self.result) or self.result== '0':# 0 == requeset error
+            if self.check_response_errors(self.result) or self.result== None:# None == requeset error
                 break
             else:
                 self.total_results += self.result
@@ -76,7 +77,7 @@ class search(object):
         self.process()
         self.d = self.get_hostnames()
         self.e = self.get_emails()
-        print "{0} domain(s) and {1} email(s) found in {2}".format(len(self.d),len(self.e),self.engine_name)
+        print "[-] {0} found {1} domain(s) and {2} email(s)".format(self.engine_name,len(self.d),len(self.e))
         return self.d, self.e
 
 
